@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: 40 25% 97%;
+  --bg-2: 32 30% 92%;
+  --ink: 222 20% 12%;
+  --muted: 220 10% 45%;
+  --brand: 18 88% 55%;
+  --brand-2: 200 65% 45%;
+  --ring: 18 88% 55%;
+  --card: 0 0% 100%;
+  --border: 220 15% 80%;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-height: 100vh;
+  background: radial-gradient(
+    1200px 600px at 10% 0%,
+    hsl(var(--bg-2)) 0%,
+    hsl(var(--bg)) 55%,
+    #ffffff 100%
+  );
+  color: hsl(var(--ink));
+  font-family: var(--font-sans);
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.glass {
+  background: color-mix(in srgb, hsl(var(--card)) 78%, transparent);
+  border: 1px solid color-mix(in srgb, hsl(var(--border)) 80%, transparent);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(18px);
+}
+
+.soft-shadow {
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+}
