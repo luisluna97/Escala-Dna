@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { verifyTurnstile } from "@/lib/turnstile";
-
 type SignupPayload = {
   matricula?: string;
   email?: string;
@@ -22,19 +20,11 @@ export async function POST(request: Request) {
   const matricula = payload.matricula?.trim();
   const email = payload.email?.trim().toLowerCase();
   const password = payload.password;
-  const captchaToken = payload.captchaToken;
+  const captchaToken = payload.captchaToken?.trim();
 
   if (!matricula || !email || !password || !captchaToken) {
     return NextResponse.json(
       { error: "Missing required fields." },
-      { status: 400 }
-    );
-  }
-
-  const captchaCheck = await verifyTurnstile(captchaToken);
-  if (!captchaCheck.ok) {
-    return NextResponse.json(
-      { error: "Captcha validation failed." },
       { status: 400 }
     );
   }
@@ -87,6 +77,7 @@ export async function POST(request: Request) {
     password,
     options: {
       emailRedirectTo: siteUrl ? `${siteUrl}/login` : undefined,
+      captchaToken,
       data: {
         matricula: colaborador.matricula,
         nome: colaborador.nome,

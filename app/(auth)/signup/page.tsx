@@ -20,6 +20,13 @@ export default function SignupPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
+  const resetTurnstile = () => {
+    if (typeof window === "undefined") return;
+    const widget = (window as typeof window & { turnstile?: { reset: () => void } })
+      .turnstile;
+    widget?.reset();
+  };
+
   const fetchColaborador = async (value: string) => {
     setError("");
     setColaborador(null);
@@ -65,6 +72,7 @@ export default function SignupPage() {
 
     if (!captchaToken) {
       setError("Confirme o captcha.");
+      resetTurnstile();
       return;
     }
 
@@ -84,6 +92,7 @@ export default function SignupPage() {
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "Erro ao cadastrar.");
+        resetTurnstile();
         return;
       }
 
