@@ -2,6 +2,19 @@ import { NextResponse } from "next/server";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+
+const ADMIN_MATRICULAS = new Set([
+  "521",
+  "584",
+  "140440",
+  "160767",
+  "690181",
+  "690188",
+  "770001",
+]);
+
+const ALLOWED_FUNCAO_TERMS = ["GERENTE", "COORDENADOR", "SUPERVISOR"];
+
 type SignupPayload = {
   matricula?: string;
   email?: string;
@@ -44,6 +57,22 @@ export async function POST(request: Request) {
     );
   }
 
+  const isAdmin = ADMIN_MATRICULAS.has(colaborador.matricula);
+  const funcaoUpper = (colaborador.funcao ?? "").toUpperCase();
+  const allowedByFuncao = ALLOWED_FUNCAO_TERMS.some((term) =>
+    funcaoUpper.includes(term)
+  );
+
+  if (!isAdmin && !allowedByFuncao) {
+    return NextResponse.json(
+      {
+        error:
+          "Cadastro permitido apenas para gerente, coordenador ou supervisor.",
+      },
+      { status: 403 }
+    );
+  }
+
   const { data: existingProfile } = await admin
     .from("profiles")
     .select("id")
@@ -83,6 +112,7 @@ export async function POST(request: Request) {
         nome: colaborador.nome,
         filial: colaborador.filial,
         funcao: colaborador.funcao,
+        role: isAdmin ? "admin" : "user",
       },
     },
   });

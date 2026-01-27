@@ -340,6 +340,8 @@ declare
   v_nome text;
   v_filial text;
   v_funcao text;
+  v_role text := 'user';
+  v_is_admin boolean := false;
 begin
   v_matricula := new.raw_user_meta_data ->> 'matricula';
   if v_matricula is null or v_matricula = '' then
@@ -355,8 +357,32 @@ begin
     raise exception 'matricula_not_found';
   end if;
 
+  v_is_admin := v_matricula = any (
+    array[
+      '521',
+      '584',
+      '140440',
+      '160767',
+      '690181',
+      '690188',
+      '770001'
+    ]
+  );
+
+  if v_is_admin then
+    v_role := 'admin';
+  elsif v_funcao is null or trim(v_funcao) = '' then
+    raise exception 'funcao_missing';
+  elsif not (
+    upper(v_funcao) like '%GERENTE%'
+    or upper(v_funcao) like '%COORDENADOR%'
+    or upper(v_funcao) like '%SUPERVISOR%'
+  ) then
+    raise exception 'funcao_not_allowed';
+  end if;
+
   insert into public.profiles (id, matricula, nome, filial, funcao, role)
-  values (new.id, v_matricula, v_nome, v_filial, v_funcao, 'user');
+  values (new.id, v_matricula, v_nome, v_filial, v_funcao, v_role);
 
   return new;
 end;
