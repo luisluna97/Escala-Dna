@@ -1,0 +1,195 @@
+Escala-Dna - Project Map (2026-01-26)
+
+1) Purpose (business)
+- Real-time operational visibility from time punches:
+  who is working, who is in overtime, and who is available.
+- Current primary page: overtime control dashboard.
+- Planned second page: "team allocation (beta)" using flights of the day.
+
+2) Tech stack (current)
+- Next.js 15 (App Router) + React 18 + TypeScript.
+- Supabase:
+  - Auth (email confirmation required).
+  - Postgres views/functions for dashboard data and access control.
+- CAPTCHA: Cloudflare Turnstile via Supabase Auth "Attack Protection".
+- Deployment: Vercel.
+
+3) Repository structure (key files)
+- Root config
+  - package.json: Next 15.5.7, eslint-config-next 15.5.7.
+  - vercel.json: installCommand = "npm install --no-package-lock".
+  - middleware.ts: Supabase SSR cookie sync in middleware.
+  - .env.example: required env variables.
+
+- App Router
+  - app/layout.tsx: global layout shell.
+  - app/page.tsx: root redirect based on session -> /dashboard or /login.
+
+  - Auth pages
+    - app/(auth)/layout.tsx: auth layout.
+    - app/(auth)/login/page.tsx: login with Turnstile token -> Supabase signIn.
+    - app/(auth)/signup/page.tsx: signup with matricula lookup + Turnstile.
+
+  - Email confirmation flow
+    - app/auth/confirm/route.ts: verifies Supabase email token_hash.
+    - app/auth/confirmed/page.tsx: user-facing "confirmed" result page.
+
+  - Dashboard
+    - app/dashboard/page.tsx: server guard (must be logged in).
+    - app/dashboard/dashboard-client.tsx: all UI, filters, sorting, fetch.
+
+- UI and shared logic
+  - components/turnstile-widget.tsx: explicit Turnstile render (stable).
+  - components/ui/*: basic UI primitives.
+  - lib/supabase/browser.ts: browser client.
+  - lib/supabase/server.ts: server client (async cookies() for Next 15).
+  - lib/supabase/admin.ts: service role client (server-only routes).
+
+- Supabase SQL
+  - supabase/setup.sql: view v_dashboard_v3 + profiles + trigger + function.
+
+4) Auth + CAPTCHA flow (end-to-end)
+
+4.1) CAPTCHA provider
+- Turnstile is configured in Supabase:
+  Authentication -> Attack Protection -> CAPTCHA -> Turnstile.
+- Supabase validates the token in both signUp and signIn.
+
+4.2) Frontend CAPTCHA
+- Implemented via components/turnstile-widget.tsx.
+- Used in:
+  - app/(auth)/login/page.tsx
+  - app/(auth)/signup/page.tsx
+- Widget is explicit render and resilient to script timing issues.
+
+4.3) Signup flow (with restrictions)
+- app/(auth)/signup/page.tsx:
+  1) User types matricula.
+  2) Frontend calls /api/colaboradores to prefill nome/filial/funcao.
+  3) User completes email/senha + Turnstile.
+  4) POST /api/signup.
+
+- app/api/signup/route.ts:
+  1) Validates required fields.
+  2) Fetches colaborador by matricula using service role.
+  3) Applies signup restrictions:
+     - Admin matriculas allowed:
+       521, 584, 140440, 160767, 690181, 690188, 770001
+     - Otherwise, funcao must contain:
+       GERENTE or COORDENADOR or SUPERVISOR
+  4) Blocks if already registered in profiles.
+  5) Calls Supabase Auth signUp with:
+     - captchaToken
+     - emailRedirectTo = <SITE_URL>/auth/confirm
+     - user metadata: matricula/nome/filial/funcao/role
+
+4.4) Email confirmation
+- Supabase sends email with token_hash and type params.
+- Redirect target: /auth/confirm (route handler).
+- app/auth/confirm/route.ts:
+  - Verifies OTP with Supabase auth.verifyOtp.
+  - Redirects to /auth/confirmed?status=success|error|...
+- app/auth/confirmed/page.tsx:
+  - Shows confirmation result and "go to login".
+
+4.5) Login flow
+- app/(auth)/login/page.tsx:
+  1) User enters email/senha.
+  2) Completes Turnstile.
+  3) Calls supabase.auth.signInWithPassword with captchaToken.
+
+5) Authorization and data access
+
+5.1) Profiles table
+- Created in supabase/setup.sql:
+  public.profiles:
+  - id (uuid, references auth.users)
+  - matricula (unique)
+  - nome, filial, funcao
+  - role (default "user")
+
+5.2) Profile creation trigger
+- Function: public.handle_new_user()
+- Trigger: after insert on auth.users
+- Rules enforced at DB level:
+  - matricula must exist in colaboradores
+  - admin matriculas become role = 'admin'
+  - non-admins must have funcao containing gerente/coordenador/supervisor
+
+5.3) Dashboard access function
+- Function: public.get_dashboard() (security definer)
+- Access rules:
+  - admin sees all
+  - SEDE and HQ2 see all
+  - others see only their filial
+
+6) Dashboard data pipeline
+
+6.1) View: v_dashboard_v3 (Supabase)
+- Purpose: calculate expected hours, worked hours, overtime, and status.
+- Key features:
+  - Per-base timezone handling:
+    - MAO -> America/Manaus
+    - default -> America/Sao_Paulo
+  - Handles overnight schedules.
+  - Detects "last work block" using gaps > 11 hours.
+  - Maps up to 4 punches (entrada1/saida1/entrada2/saida2).
+  - Status values:
+    aguardando | trabalhando ok | trabalhando em hora extra
+    finalizado ok | finalizado com hora extra
+  - Madrugada filter to remove certain false positives.
+
+6.2) Frontend fetch and limits
+- app/dashboard/dashboard-client.tsx:
+  - Calls supabase.rpc("get_dashboard").
+  - Handles >1000 rows by paging:
+    - pulls multiple pages of 1000 via range().
+
+6.3) Filters and usability decisions
+- Base filter:
+  - Derived from data at runtime (not hard-coded).
+  - Sorted alphabetically.
+  - SEDE and HQ2 removed from the dropdown.
+- Other filters:
+  - status, contract type, function group, search, sorting.
+
+7) Environment variables (must exist in Vercel)
+- NEXT_PUBLIC_SUPABASE_URL
+- NEXT_PUBLIC_SUPABASE_ANON_KEY
+- SUPABASE_SERVICE_ROLE_KEY
+- NEXT_PUBLIC_SITE_URL (must match deployed domain)
+- NEXT_PUBLIC_TURNSTILE_SITE_KEY
+
+Recommended current value:
+- NEXT_PUBLIC_SITE_URL=https://escala-dna-1.vercel.app
+
+8) Supabase console checklist (required)
+- Authentication -> URL Configuration:
+  - Site URL: https://escala-dna-1.vercel.app
+  - Redirect URLs:
+    - https://escala-dna-1.vercel.app/auth/confirm
+- Authentication -> Attack Protection:
+  - CAPTCHA enabled
+  - Provider: Turnstile
+  - Secret key configured
+- SQL Editor:
+  - Run supabase/setup.sql after changes to the trigger/view/function.
+
+9) Known operational notes
+- Vercel deploy stability:
+  - Uses npm install without lockfile to avoid pnpm/npm lock conflicts.
+- Local Node tooling was unavailable in this environment; all fixes were made
+  through code + deploy.
+
+10) Next planned feature: Team Allocation (beta)
+- Natural place: /allocacao (new page) beside /dashboard.
+- Suggested data flow:
+  - Supabase tables:
+    - voos (flight schedule)
+    - alocacoes (flight -> team assignments)
+  - Reuse profiles + filial-based access.
+  - UI:
+    - left: flights timeline
+    - right: available people pool
+    - drag/drop or quick-assign actions
+
