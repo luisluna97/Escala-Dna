@@ -34,41 +34,6 @@ type DashboardRow = {
 
 type DashboardRowWithGroup = DashboardRow & { funcaoGrupo: string };
 
-const basesOptions = [
-  "BVB",
-  "CPV",
-  "IGU",
-  "THE",
-  "JJD",
-  "PNZ",
-  "FOR",
-  "JDO",
-  "VCP",
-  "GIG",
-  "JPA",
-  "GRU",
-  "SSA",
-  "SEDE",
-  "REC",
-  "CWB",
-  "MCZ",
-  "BEL",
-  "AJU",
-  "MCP",
-  "STM",
-  "SLZ",
-  "BSB",
-  "FLN",
-  "NAT",
-  "IOS",
-  "MAO",
-  "BPS",
-  "POA",
-  "FEN",
-  "CGH",
-  "HQ2",
-];
-
 const statusOptions = [
   "todas",
   "aguardando",
@@ -207,17 +172,38 @@ export default function DashboardClient({ userId }: { userId: string }) {
     setLoading(true);
     setError("");
 
-    const { data: rows, error: fetchError } = await supabase.rpc(
-      "get_dashboard"
-    );
+    const pageSize = 1000;
+    const allRows: DashboardRow[] = [];
+    let from = 0;
+    let fetchError: string | null = null;
+
+    while (fetchError === null) {
+      const { data: rows, error } = await supabase
+        .rpc("get_dashboard")
+        .range(from, from + pageSize - 1);
+
+      if (error) {
+        fetchError = error.message;
+        break;
+      }
+
+      const page = (rows ?? []) as DashboardRow[];
+      allRows.push(...page);
+
+      if (page.length < pageSize) {
+        break;
+      }
+
+      from += pageSize;
+    }
 
     if (fetchError) {
-      setError(fetchError.message);
+      setError(fetchError);
       setLoading(false);
       return;
     }
 
-    setData((rows ?? []) as DashboardRow[]);
+    setData(allRows);
     setLastUpdated(new Date().toLocaleTimeString("pt-BR"));
     setLoading(false);
   }, [supabase]);
@@ -261,6 +247,19 @@ export default function DashboardClient({ userId }: { userId: string }) {
     profile?.role === "admin" ||
     profile?.filial === "SEDE" ||
     profile?.filial === "HQ2";
+
+  const baseOptions = useMemo(() => {
+    const blocked = new Set(["SEDE", "HQ2"]);
+    const bases = new Set<string>();
+
+    data.forEach((row) => {
+      const base = row.colaborador_filial?.trim().toUpperCase();
+      if (!base || blocked.has(base)) return;
+      bases.add(base);
+    });
+
+    return Array.from(bases).sort((a, b) => a.localeCompare(b));
+  }, [data]);
 
   const mappedData = useMemo<DashboardRowWithGroup[]>(() => {
     return data.map((row) => ({
@@ -440,7 +439,7 @@ export default function DashboardClient({ userId }: { userId: string }) {
                   className="w-full rounded-2xl border border-black/10 bg-white px-4 py-2 text-sm outline-none focus:border-[hsl(var(--brand))] focus:ring-2 focus:ring-[hsl(var(--brand))/0.2]"
                 >
                   <option value="">Todas</option>
-                  {basesOptions.map((base) => (
+                  {baseOptions.map((base) => (
                     <option key={base} value={base}>
                       {base}
                     </option>

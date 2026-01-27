@@ -76,7 +76,7 @@ export async function POST(request: Request) {
     email,
     password,
     options: {
-      emailRedirectTo: siteUrl ? `${siteUrl}/login` : undefined,
+      emailRedirectTo: siteUrl ? `${siteUrl}/auth/confirm` : undefined,
       captchaToken,
       data: {
         matricula: colaborador.matricula,

@@ -3,9 +3,9 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Script from "next/script";
 
 import { createClient } from "@/lib/supabase/browser";
+import TurnstileWidget from "@/components/turnstile-widget";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -15,27 +15,20 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState("");
+  const [resetCaptcha, setResetCaptcha] = useState<() => void>(() => () => {});
 
-  const resetTurnstile = () => {
-    if (typeof window === "undefined") return;
-    const widget = (window as typeof window & { turnstile?: { reset: () => void } })
-      .turnstile;
-    widget?.reset();
-  };
+  const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
 
   const handleLogin = async (event: React.FormEvent) => {
     event.preventDefault();
     setError("");
     setLoading(true);
 
-    const captchaToken =
-      document.querySelector<HTMLInputElement>(
-        "[name='cf-turnstile-response']"
-      )?.value ?? "";
-
     if (!captchaToken) {
       setError("Confirme o captcha.");
       setLoading(false);
+      resetCaptcha();
       return;
     }
 
@@ -47,7 +40,7 @@ export default function LoginPage() {
 
     if (authError) {
       setError(authError.message);
-      resetTurnstile();
+      resetCaptcha();
       setLoading(false);
       return;
     }
@@ -57,10 +50,6 @@ export default function LoginPage() {
 
   return (
     <>
-      <Script
-        src="https://challenges.cloudflare.com/turnstile/v0/api.js"
-        strategy="afterInteractive"
-      />
       <div className="flex flex-col gap-6">
         <div className="space-y-2">
           <h2 className="font-display text-3xl font-semibold text-ink">
@@ -100,10 +89,11 @@ export default function LoginPage() {
             />
           </div>
 
-          <div
-            className="cf-turnstile"
-            data-sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? ""}
-          ></div>
+          <TurnstileWidget
+            siteKey={siteKey}
+            onTokenChange={setCaptchaToken}
+            onResetReady={setResetCaptcha}
+          />
 
           {error && (
             <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
