@@ -618,20 +618,7 @@ export default function DashboardClient({ userId }: { userId: string }) {
 
         <div className="glass soft-shadow overflow-hidden rounded-3xl">
           <div className="overflow-x-hidden">
-            <table className="w-full table-fixed text-left text-xs">
-              <colgroup>
-                <col style={{ width: "16%" }} />
-                <col style={{ width: "7%" }} />
-                <col style={{ width: "13%" }} />
-                <col style={{ width: "6%" }} />
-                <col style={{ width: "5%" }} />
-                <col style={{ width: "12%" }} />
-                <col style={{ width: "12%" }} />
-                <col style={{ width: "10%" }} />
-                <col style={{ width: "5%" }} />
-                <col style={{ width: "5%" }} />
-                <col style={{ width: "9%" }} />
-              </colgroup>
+            <table className="min-w-full table-auto text-left text-xs">
               <thead className="bg-white/90 text-xs uppercase tracking-[0.2em] text-muted">
                 <tr>
                   {[
@@ -652,7 +639,7 @@ export default function DashboardClient({ userId }: { userId: string }) {
                       onClick={() =>
                         handleSort(col.key as keyof DashboardRow)
                       }
-                      className="cursor-pointer whitespace-nowrap px-4 py-3"
+                      className="cursor-pointer whitespace-nowrap px-3 py-3"
                     >
                       {col.label}
                     </th>
@@ -678,37 +665,47 @@ export default function DashboardClient({ userId }: { userId: string }) {
                       key={`${row.matricula}-${index}`}
                       className="border-t border-black/5"
                     >
-                      <td className="px-4 py-3 font-medium text-ink">
-                        <div className="truncate">{row.nome}</div>
+                      <td className="px-3 py-3 font-medium text-ink">
+                        <div className="max-w-[220px] whitespace-normal break-words">
+                          {row.nome}
+                        </div>
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="truncate">{row.matricula}</div>
+                      <td className="px-3 py-3">
+                        <div className="max-w-[110px] whitespace-normal break-words">
+                          {row.matricula}
+                        </div>
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="truncate">{row.funcao}</div>
+                      <td className="px-3 py-3">
+                        <div className="max-w-[200px] whitespace-normal break-words">
+                          {row.funcao}
+                        </div>
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="truncate">{row.colaborador_filial}</div>
+                      <td className="px-3 py-3">
+                        <div className="max-w-[90px] whitespace-normal break-words">
+                          {row.colaborador_filial}
+                        </div>
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="truncate">{row.carga_horaria}</div>
+                      <td className="px-3 py-3">
+                        <div className="max-w-[80px] whitespace-normal break-words">
+                          {row.carga_horaria}
+                        </div>
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-[11px] text-muted">
+                      <td className="px-3 py-3 whitespace-nowrap text-[11px] text-muted">
                         {formatPair(row.entrada_escala, row.saida_escala, " → ")}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-[11px] text-muted">
+                      <td className="px-3 py-3 whitespace-nowrap text-[11px] text-muted">
                         {formatPair(row.entrada1, row.saida1)}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-[11px] text-muted">
+                      <td className="px-3 py-3 whitespace-nowrap text-[11px] text-muted">
                         {formatPair(row.entrada2, row.saida2)}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-3 py-3">
                         {decimalHoursToHHMM(row.horas_trabalhadas)}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-3 py-3">
                         {decimalHoursToHHMM(row.hora_extra)}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-3 py-3">
                         <span
                           className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusBadge(
                             row.status
