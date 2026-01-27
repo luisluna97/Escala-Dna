@@ -263,7 +263,7 @@ export default function DashboardClient({ userId }: { userId: string }) {
     if (!profile) return;
 
     fetchDashboard();
-    const interval = setInterval(fetchDashboard, 60000);
+    const interval = setInterval(fetchDashboard, 5 * 60 * 1000);
 
     return () => clearInterval(interval);
   }, [profile, fetchDashboard]);
@@ -409,7 +409,7 @@ export default function DashboardClient({ userId }: { userId: string }) {
   return (
     <div className="min-h-screen pb-12">
       <header className="sticky top-0 z-20 border-b border-black/5 bg-white/80 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-4">
+        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-4 sm:px-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="space-y-1">
               <p className="text-xs uppercase tracking-[0.2em] text-muted">
@@ -438,7 +438,7 @@ export default function DashboardClient({ userId }: { userId: string }) {
         </div>
       </header>
 
-      <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 pt-8">
+      <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 pt-8 sm:px-6">
         <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
           <div className="glass soft-shadow rounded-3xl p-6">
             <div className="flex flex-col gap-2">
@@ -617,8 +617,21 @@ export default function DashboardClient({ userId }: { userId: string }) {
         )}
 
         <div className="glass soft-shadow overflow-hidden rounded-3xl">
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-xs">
+          <div className="overflow-x-hidden">
+            <table className="w-full table-fixed text-left text-xs">
+              <colgroup>
+                <col style={{ width: "16%" }} />
+                <col style={{ width: "7%" }} />
+                <col style={{ width: "13%" }} />
+                <col style={{ width: "6%" }} />
+                <col style={{ width: "5%" }} />
+                <col style={{ width: "12%" }} />
+                <col style={{ width: "12%" }} />
+                <col style={{ width: "10%" }} />
+                <col style={{ width: "5%" }} />
+                <col style={{ width: "5%" }} />
+                <col style={{ width: "9%" }} />
+              </colgroup>
               <thead className="bg-white/90 text-xs uppercase tracking-[0.2em] text-muted">
                 <tr>
                   {[
@@ -666,12 +679,20 @@ export default function DashboardClient({ userId }: { userId: string }) {
                       className="border-t border-black/5"
                     >
                       <td className="px-4 py-3 font-medium text-ink">
-                        {row.nome}
+                        <div className="truncate">{row.nome}</div>
                       </td>
-                      <td className="px-4 py-3">{row.matricula}</td>
-                      <td className="px-4 py-3">{row.funcao}</td>
-                      <td className="px-4 py-3">{row.colaborador_filial}</td>
-                      <td className="px-4 py-3">{row.carga_horaria}</td>
+                      <td className="px-4 py-3">
+                        <div className="truncate">{row.matricula}</div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="truncate">{row.funcao}</div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="truncate">{row.colaborador_filial}</div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="truncate">{row.carga_horaria}</div>
+                      </td>
                       <td className="px-4 py-3 whitespace-nowrap text-[11px] text-muted">
                         {formatPair(row.entrada_escala, row.saida_escala, " → ")}
                       </td>
