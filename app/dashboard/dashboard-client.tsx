@@ -146,17 +146,17 @@ function formatPair(
 function getStatusBadge(status: string | null) {
   switch (status) {
     case "aguardando":
-      return "bg-amber-100 text-amber-800";
+      return "bg-amber-500";
     case "trabalhando em hora extra":
-      return "bg-red-100 text-red-700";
+      return "bg-red-500";
     case "trabalhando ok":
-      return "bg-emerald-100 text-emerald-700";
+      return "bg-emerald-500";
     case "finalizado ok":
-      return "bg-blue-100 text-blue-700";
+      return "bg-blue-500";
     case "finalizado com hora extra":
-      return "bg-rose-100 text-rose-700";
+      return "bg-rose-500";
     default:
-      return "bg-slate-100 text-slate-700";
+      return "bg-slate-400";
   }
 }
 
@@ -706,13 +706,16 @@ export default function DashboardClient({ userId }: { userId: string }) {
                         {decimalHoursToHHMM(row.hora_extra)}
                       </td>
                       <td className="px-3 py-3">
-                        <span
-                          className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusBadge(
-                            row.status
-                          )}`}
-                        >
-                          {getStatusLabel(row.status)}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`h-2.5 w-2.5 rounded-full ${getStatusBadge(
+                              row.status
+                            )}`}
+                          />
+                          <span className="text-xs font-semibold text-ink/80">
+                            {getStatusLabel(row.status)}
+                          </span>
+                        </div>
                       </td>
                     </tr>
                   ))
