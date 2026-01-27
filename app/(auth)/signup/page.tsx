@@ -65,7 +65,7 @@ export default function SignupPage() {
 
     if (!captchaToken) {
       setError("Confirme o captcha.");
-      resetCaptcha();
+      if (typeof resetCaptcha === "function") resetCaptcha();
       return;
     }
 
@@ -82,14 +82,23 @@ export default function SignupPage() {
         }),
       });
 
-      const data = await res.json();
+      const bodyText = await res.text();
+      let data: any = null;
+      if (bodyText) {
+        try {
+          data = JSON.parse(bodyText);
+        } catch {
+          data = { raw: bodyText };
+        }
+      }
+
       if (!res.ok) {
         const errorMessage =
           typeof data?.error === "string"
             ? data.error
-            : data?.error?.message;
+            : data?.error?.message || data?.raw;
         setError(errorMessage || "Erro ao cadastrar.");
-        resetCaptcha();
+        if (typeof resetCaptcha === "function") resetCaptcha();
         return;
       }
 
@@ -100,12 +109,12 @@ export default function SignupPage() {
       setPassword("");
       setConfirmPassword("");
       setCaptchaToken("");
-      resetCaptcha();
+      if (typeof resetCaptcha === "function") resetCaptcha();
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Falha inesperada no cadastro.";
       setError(message);
-      resetCaptcha();
+      if (typeof resetCaptcha === "function") resetCaptcha();
     } finally {
       setLoading(false);
     }
