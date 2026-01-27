@@ -12,7 +12,7 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "Portal Dnata",
+  title: "Portal das Escalas",
   description: "Portal operacional para acompanhamento de ponto e escalas.",
 };
 

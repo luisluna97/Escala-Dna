@@ -13,20 +13,15 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
           <div className="grid w-full gap-10 lg:grid-cols-[1.1fr_0.9fr]">
             <div className="flex flex-col justify-center gap-6 text-balance">
               <div className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-4 py-1 text-xs uppercase tracking-[0.2em] text-muted">
-                Portal Dnata
+                Portal das Escalas
               </div>
               <h1 className="font-display text-4xl font-semibold leading-tight text-ink md:text-5xl">
-                Operacao em tempo real para quem esta no controle.
+                Operacao em tempo real, planejamento em tempo real.
               </h1>
               <p className="max-w-xl text-base text-muted md:text-lg">
-                Acompanhe batidas de ponto, hora extra e disponibilidade com foco
-                total na operacao. Simples, rapido e seguro.
+                Acompanhe as horas extras em tempo real e, em breve, o
+                planejamento das equipes em tempo real.
               </p>
-              <div className="flex items-center gap-4 text-sm text-muted">
-                <span>Base por usuario</span>
-                <span className="h-1 w-1 rounded-full bg-muted/50" />
-                <span>Admins com visao total</span>
-              </div>
             </div>
             <div className="glass soft-shadow rounded-3xl border border-white/60 bg-white/80 p-8 md:p-10">
               {children}

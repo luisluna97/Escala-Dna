@@ -135,6 +135,14 @@ function decimalHoursToHHMM(value: number | null) {
   return `${hours}:${minutes.toString().padStart(2, "0")}`;
 }
 
+function formatPair(
+  start: string | null,
+  end: string | null,
+  divider = " / "
+) {
+  return `${formatDateTime(start)}${divider}${formatDateTime(end)}`;
+}
+
 function getStatusBadge(status: string | null) {
   switch (status) {
     case "aguardando":
@@ -379,6 +387,20 @@ export default function DashboardClient({ userId }: { userId: string }) {
     }
   };
 
+  const toggleGroup = (group: string) => {
+    if (group === "todas") {
+      setSelectedGroups(["todas"]);
+      return;
+    }
+
+    const withoutAll = selectedGroups.filter((item) => item !== "todas");
+    const next = withoutAll.includes(group)
+      ? withoutAll.filter((item) => item !== group)
+      : [...withoutAll, group];
+
+    setSelectedGroups(next.length ? next : ["todas"]);
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push("/login");
@@ -565,28 +587,26 @@ export default function DashboardClient({ userId }: { userId: string }) {
             <label className="text-xs uppercase tracking-[0.2em] text-muted">
               Grupo de funcao
             </label>
-            <select
-              multiple
-              value={selectedGroups}
-              onChange={(event) => {
-                const values = Array.from(
-                  event.target.selectedOptions,
-                  (opt) => opt.value
+            <div className="flex flex-wrap gap-2">
+              {funcaoGruposOptions.map((group) => {
+                const active = selectedGroups.includes(group);
+                return (
+                  <button
+                    key={group}
+                    type="button"
+                    onClick={() => toggleGroup(group)}
+                    className={[
+                      "rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] transition",
+                      active
+                        ? "border-[hsl(var(--brand))] bg-[hsl(var(--brand))/0.12] text-[hsl(var(--brand))]"
+                        : "border-black/10 bg-white text-muted hover:text-ink",
+                    ].join(" ")}
+                  >
+                    {group}
+                  </button>
                 );
-                if (values.includes("todas") && values.length === 1) {
-                  setSelectedGroups(["todas"]);
-                } else {
-                  setSelectedGroups(values.length ? values : ["todas"]);
-                }
-              }}
-              className="w-full rounded-2xl border border-black/10 bg-white px-4 py-2 text-sm outline-none focus:border-[hsl(var(--brand))] focus:ring-2 focus:ring-[hsl(var(--brand))/0.2]"
-            >
-              {funcaoGruposOptions.map((group) => (
-                <option key={group} value={group}>
-                  {group}
-                </option>
-              ))}
-            </select>
+              })}
+            </div>
           </div>
         </div>
 
@@ -598,7 +618,7 @@ export default function DashboardClient({ userId }: { userId: string }) {
 
         <div className="glass soft-shadow overflow-hidden rounded-3xl">
           <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
+            <table className="min-w-full text-left text-xs">
               <thead className="bg-white/90 text-xs uppercase tracking-[0.2em] text-muted">
                 <tr>
                   {[
@@ -607,12 +627,9 @@ export default function DashboardClient({ userId }: { userId: string }) {
                     { key: "funcao", label: "Funcao" },
                     { key: "colaborador_filial", label: "Base" },
                     { key: "carga_horaria", label: "Carga" },
-                    { key: "entrada_escala", label: "E escala" },
-                    { key: "saida_escala", label: "S escala" },
-                    { key: "entrada1", label: "E1" },
-                    { key: "saida1", label: "S1" },
-                    { key: "entrada2", label: "E2" },
-                    { key: "saida2", label: "S2" },
+                    { key: "entrada_escala", label: "Escala" },
+                    { key: "entrada1", label: "Batidas" },
+                    { key: "entrada2", label: "Retorno" },
                     { key: "horas_trabalhadas", label: "H trab" },
                     { key: "hora_extra", label: "H extra" },
                     { key: "status", label: "Status" },
@@ -632,13 +649,13 @@ export default function DashboardClient({ userId }: { userId: string }) {
               <tbody className="bg-white/70">
                 {loading ? (
                   <tr>
-                    <td className="px-4 py-8 text-center text-muted" colSpan={14}>
+                    <td className="px-4 py-8 text-center text-muted" colSpan={11}>
                       Carregando dados...
                     </td>
                   </tr>
                 ) : sortedData.length === 0 ? (
                   <tr>
-                    <td className="px-4 py-8 text-center text-muted" colSpan={14}>
+                    <td className="px-4 py-8 text-center text-muted" colSpan={11}>
                       Nenhum registro encontrado.
                     </td>
                   </tr>
@@ -655,23 +672,14 @@ export default function DashboardClient({ userId }: { userId: string }) {
                       <td className="px-4 py-3">{row.funcao}</td>
                       <td className="px-4 py-3">{row.colaborador_filial}</td>
                       <td className="px-4 py-3">{row.carga_horaria}</td>
-                      <td className="px-4 py-3">
-                        {formatDateTime(row.entrada_escala)}
+                      <td className="px-4 py-3 whitespace-nowrap text-[11px] text-muted">
+                        {formatPair(row.entrada_escala, row.saida_escala, " → ")}
                       </td>
-                      <td className="px-4 py-3">
-                        {formatDateTime(row.saida_escala)}
+                      <td className="px-4 py-3 whitespace-nowrap text-[11px] text-muted">
+                        {formatPair(row.entrada1, row.saida1)}
                       </td>
-                      <td className="px-4 py-3">
-                        {formatDateTime(row.entrada1)}
-                      </td>
-                      <td className="px-4 py-3">
-                        {formatDateTime(row.saida1)}
-                      </td>
-                      <td className="px-4 py-3">
-                        {formatDateTime(row.entrada2)}
-                      </td>
-                      <td className="px-4 py-3">
-                        {formatDateTime(row.saida2)}
+                      <td className="px-4 py-3 whitespace-nowrap text-[11px] text-muted">
+                        {formatPair(row.entrada2, row.saida2)}
                       </td>
                       <td className="px-4 py-3">
                         {decimalHoursToHHMM(row.horas_trabalhadas)}
