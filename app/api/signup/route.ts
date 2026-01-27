@@ -118,7 +118,16 @@ export async function POST(request: Request) {
   });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json(
+      {
+        error: {
+          message: error.message,
+          name: error.name,
+          status: error.status ?? 400,
+        },
+      },
+      { status: error.status ?? 400 }
+    );
   }
 
   return NextResponse.json({

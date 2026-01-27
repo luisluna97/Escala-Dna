@@ -84,7 +84,11 @@ export default function SignupPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || "Erro ao cadastrar.");
+        const errorMessage =
+          typeof data?.error === "string"
+            ? data.error
+            : data?.error?.message;
+        setError(errorMessage || "Erro ao cadastrar.");
         resetCaptcha();
         return;
       }
@@ -98,7 +102,9 @@ export default function SignupPage() {
       setCaptchaToken("");
       resetCaptcha();
     } catch (err) {
-      setError("Falha inesperada no cadastro.");
+      const message =
+        err instanceof Error ? err.message : "Falha inesperada no cadastro.";
+      setError(message);
       resetCaptcha();
     } finally {
       setLoading(false);
