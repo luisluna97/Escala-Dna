@@ -1,10 +1,12 @@
 import Link from "next/link";
 
+type ConfirmedSearchParams = {
+  status?: string;
+  next?: string;
+};
+
 type ConfirmedPageProps = {
-  searchParams?: {
-    status?: string;
-    next?: string;
-  };
+  searchParams?: Promise<ConfirmedSearchParams>;
 };
 
 function getMessage(status: string) {
@@ -36,9 +38,10 @@ function getMessage(status: string) {
   }
 }
 
-export default function ConfirmedPage({ searchParams }: ConfirmedPageProps) {
-  const status = searchParams?.status || "error";
-  const next = searchParams?.next || "/login";
+export default async function ConfirmedPage({ searchParams }: ConfirmedPageProps) {
+  const params = searchParams ? await searchParams : {};
+  const status = params.status || "error";
+  const next = params.next || "/login";
   const message = getMessage(status);
 
   return (
@@ -57,4 +60,3 @@ export default function ConfirmedPage({ searchParams }: ConfirmedPageProps) {
     </div>
   );
 }
-
