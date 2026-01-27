@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import AppTabs from "@/components/app-tabs";
 import { createClient } from "@/lib/supabase/browser";
 
 type Profile = {
@@ -35,13 +36,20 @@ type DashboardRow = {
 type DashboardRowWithGroup = DashboardRow & { funcaoGrupo: string };
 
 const statusOptions = [
-  "todas",
-  "aguardando",
-  "trabalhando em hora extra",
-  "trabalhando ok",
-  "finalizado ok",
-  "finalizado com hora extra",
+  { value: "todas", label: "Todos" },
+  { value: "trabalhando em hora extra", label: "Em hora extra" },
+  { value: "trabalhando ok", label: "Em jornada" },
+  { value: "finalizado com hora extra", label: "Finalizado c/ HE" },
+  { value: "finalizado ok", label: "Finalizado" },
 ];
+
+const statusLabels: Record<string, string> = {
+  aguardando: "Sem batida",
+  "trabalhando em hora extra": "Em hora extra",
+  "trabalhando ok": "Em jornada",
+  "finalizado ok": "Finalizado",
+  "finalizado com hora extra": "Finalizado c/ HE",
+};
 
 const funcaoGruposOptions = [
   "todas",
@@ -144,9 +152,18 @@ function getStatusBadge(status: string | null) {
   }
 }
 
+function getStatusLabel(status: string | null) {
+  if (!status) return "-";
+  return statusLabels[status] ?? status;
+}
+
 function isFullTime(carga: number | null) {
   if (carga == null) return false;
   return [180, 210, 220].includes(carga);
+}
+
+function hasAnyPunch(row: DashboardRow) {
+  return Boolean(row.entrada1 || row.saida1 || row.entrada2 || row.saida2);
 }
 
 export default function DashboardClient({ userId }: { userId: string }) {
@@ -227,7 +244,7 @@ export default function DashboardClient({ userId }: { userId: string }) {
         profileData?.filial &&
         !["SEDE", "HQ2"].includes(profileData.filial)
       ) {
-        setSelectedBase(profileData.filial);
+        setSelectedBase(profileData.filial.toUpperCase());
       }
     };
 
@@ -268,16 +285,18 @@ export default function DashboardClient({ userId }: { userId: string }) {
     }));
   }, [data]);
 
-  const filteredData = useMemo(() => {
+  const scopedData = useMemo(() => {
     return mappedData.filter((row) => {
+      if (!hasAnyPunch(row)) return false;
+
+      const rowBase = row.colaborador_filial?.trim().toUpperCase() || "";
+      const profileBase = profile?.filial?.trim().toUpperCase() || "";
+
       const baseOk = canViewAllBases
         ? selectedBase
-          ? row.colaborador_filial === selectedBase
+          ? rowBase === selectedBase
           : true
-        : row.colaborador_filial === profile?.filial;
-
-      const statusOk =
-        selectedStatus === "todas" || row.status === selectedStatus;
+        : rowBase === profileBase;
 
       const contratoOk =
         selectedContrato === "todas" ||
@@ -294,18 +313,22 @@ export default function DashboardClient({ userId }: { userId: string }) {
         (row.nome || "").toLowerCase().includes(searchValue) ||
         (row.matricula || "").toLowerCase().includes(searchValue);
 
-      return baseOk && statusOk && contratoOk && groupOk && searchOk;
+      return baseOk && contratoOk && groupOk && searchOk;
     });
   }, [
     mappedData,
     canViewAllBases,
     selectedBase,
-    selectedStatus,
     selectedContrato,
     selectedGroups,
     search,
     profile?.filial,
   ]);
+
+  const filteredData = useMemo(() => {
+    if (selectedStatus === "todas") return scopedData;
+    return scopedData.filter((row) => row.status === selectedStatus);
+  }, [scopedData, selectedStatus]);
 
   const sortedData = useMemo(() => {
     const rows = [...filteredData];
@@ -334,6 +357,28 @@ export default function DashboardClient({ userId }: { userId: string }) {
     return acc + row.hora_extra;
   }, 0);
 
+  const heAtivos = scopedData.filter(
+    (row) => row.status === "trabalhando em hora extra"
+  ).length;
+  const emJornada = scopedData.filter(
+    (row) => row.status === "trabalhando ok"
+  ).length;
+  const finalizados = scopedData.filter((row) =>
+    row.status?.startsWith("finalizado")
+  ).length;
+
+  const resetFilters = () => {
+    setSearch("");
+    setSelectedStatus("todas");
+    setSelectedContrato("todas");
+    setSelectedGroups(["todas"]);
+    if (canViewAllBases) {
+      setSelectedBase("");
+    } else if (profile?.filial) {
+      setSelectedBase(profile.filial.toUpperCase());
+    }
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push("/login");
@@ -342,29 +387,32 @@ export default function DashboardClient({ userId }: { userId: string }) {
   return (
     <div className="min-h-screen pb-12">
       <header className="sticky top-0 z-20 border-b border-black/5 bg-white/80 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <div className="space-y-1">
-            <p className="text-xs uppercase tracking-[0.2em] text-muted">
-              Dashboard operacional
-            </p>
-            <h1 className="font-display text-2xl font-semibold text-ink">
-              Hora extra e disponibilidade
-            </h1>
+        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="space-y-1">
+              <p className="text-xs uppercase tracking-[0.2em] text-muted">
+                Dashboard operacional
+              </p>
+              <h1 className="font-display text-2xl font-semibold text-ink">
+                Hora extra e disponibilidade
+              </h1>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={fetchDashboard}
+                className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-ink shadow-sm transition hover:-translate-y-0.5"
+              >
+                Atualizar
+              </button>
+              <button
+                onClick={handleLogout}
+                className="rounded-full border border-black/10 px-4 py-2 text-sm font-semibold text-muted transition hover:text-ink"
+              >
+                Sair
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={fetchDashboard}
-              className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-ink shadow-sm transition hover:-translate-y-0.5"
-            >
-              Atualizar
-            </button>
-            <button
-              onClick={handleLogout}
-              className="rounded-full border border-black/10 px-4 py-2 text-sm font-semibold text-muted transition hover:text-ink"
-            >
-              Sair
-            </button>
-          </div>
+          <AppTabs />
         </div>
       </header>
 
@@ -391,6 +439,17 @@ export default function DashboardClient({ userId }: { userId: string }) {
               <p className="text-sm text-muted">
                 Ultima atualizacao: {lastUpdated || "-"}
               </p>
+              <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-semibold uppercase tracking-[0.16em]">
+                <span className="rounded-full bg-red-100 px-3 py-1 text-red-700">
+                  HE ativa: {heAtivos}
+                </span>
+                <span className="rounded-full bg-emerald-100 px-3 py-1 text-emerald-700">
+                  Em jornada: {emJornada}
+                </span>
+                <span className="rounded-full bg-blue-100 px-3 py-1 text-blue-700">
+                  Finalizados: {finalizados}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -458,8 +517,8 @@ export default function DashboardClient({ userId }: { userId: string }) {
                 className="w-full rounded-2xl border border-black/10 bg-white px-4 py-2 text-sm outline-none focus:border-[hsl(var(--brand))] focus:ring-2 focus:ring-[hsl(var(--brand))/0.2]"
               >
                 {statusOptions.map((status) => (
-                  <option key={status} value={status}>
-                    {status}
+                  <option key={status.value} value={status.value}>
+                    {status.label}
                   </option>
                 ))}
               </select>
@@ -479,6 +538,27 @@ export default function DashboardClient({ userId }: { userId: string }) {
                 <option value="part">Part-time</option>
               </select>
             </div>
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              onClick={() => setSelectedStatus("trabalhando em hora extra")}
+              className="rounded-full border border-red-200 bg-red-50 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-red-700 transition hover:-translate-y-0.5"
+            >
+              So HE
+            </button>
+            <button
+              onClick={() => setSelectedStatus("trabalhando ok")}
+              className="rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700 transition hover:-translate-y-0.5"
+            >
+              Em jornada
+            </button>
+            <button
+              onClick={resetFilters}
+              className="rounded-full border border-black/10 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted transition hover:text-ink"
+            >
+              Limpar filtros
+            </button>
           </div>
 
           <div className="mt-4 space-y-2">
@@ -605,7 +685,7 @@ export default function DashboardClient({ userId }: { userId: string }) {
                             row.status
                           )}`}
                         >
-                          {row.status || "-"}
+                          {getStatusLabel(row.status)}
                         </span>
                       </td>
                     </tr>

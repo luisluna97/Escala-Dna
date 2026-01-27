@@ -75,12 +75,22 @@ blocos as (
     sum(d.novo_dia) over (partition by d.matricula order by d.marcacao rows between unbounded preceding and current row) as bloco_id
   from definir_cortes d
 ),
+blocos_validos as (
+  select
+    b.matricula,
+    b.bloco_id,
+    max(case when b.marcacao >= c.base_date then 1 else 0 end) as tem_marcacao_no_dia
+  from blocos b
+    join colabs c on c.matricula = b.matricula
+  group by b.matricula, b.bloco_id
+),
 ultimo_bloco as (
   select
-    blocos.matricula,
-    max(blocos.bloco_id) as bloco_final
-  from blocos
-  group by blocos.matricula
+    bv.matricula,
+    max(bv.bloco_id) as bloco_final
+  from blocos_validos bv
+  where bv.tem_marcacao_no_dia = 1
+  group by bv.matricula
 ),
 filtrado as (
   select
