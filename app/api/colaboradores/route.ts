@@ -2,6 +2,18 @@ import { NextResponse } from "next/server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 
+const ADMIN_MATRICULAS = new Set([
+  "521",
+  "584",
+  "140440",
+  "160767",
+  "690181",
+  "690188",
+  "770001",
+]);
+
+const ALLOWED_FUNCAO_TERMS = ["GERENTE", "COORDENADOR", "SUPERVISOR"];
+
 const getMaskedName = (name?: string | null) => {
   const first = name?.trim().split(/\s+/)[0];
   if (!first) return "****";
@@ -33,9 +45,20 @@ export async function GET(request: Request) {
     );
   }
 
+  const isAdmin = ADMIN_MATRICULAS.has(matricula);
+  const funcaoUpper = (data.funcao ?? "").toUpperCase();
+  const allowedByFuncao = ALLOWED_FUNCAO_TERMS.some((term) =>
+    funcaoUpper.includes(term)
+  );
+  const allowSignup = isAdmin || allowedByFuncao;
+
   return NextResponse.json({
     nome: getMaskedName(data.nome),
     filial: data.filial ?? "",
     funcao: data.funcao ?? "",
+    allowSignup,
+    allowReason: allowSignup
+      ? null
+      : "Cadastro permitido apenas para gerente, coordenador ou supervisor.",
   });
 }

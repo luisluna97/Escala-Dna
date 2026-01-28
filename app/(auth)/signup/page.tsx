@@ -9,6 +9,8 @@ type Colaborador = {
   nome: string;
   filial: string;
   funcao: string;
+  allowSignup?: boolean;
+  allowReason?: string | null;
 };
 
 export default function SignupPage() {
@@ -19,6 +21,7 @@ export default function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [lastName, setLastName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [canSignup, setCanSignup] = useState<boolean | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [captchaToken, setCaptchaToken] = useState("");
@@ -29,6 +32,7 @@ export default function SignupPage() {
   const fetchColaborador = async (value: string) => {
     setError("");
     setColaborador(null);
+    setCanSignup(null);
 
     if (!value) return null;
 
@@ -42,6 +46,15 @@ export default function SignupPage() {
 
     const data = (await res.json()) as Colaborador;
     setColaborador(data);
+    if (data.allowSignup === false) {
+      setCanSignup(false);
+      setError(
+        data.allowReason ||
+          "Cadastro permitido apenas para gerente, coordenador ou supervisor."
+      );
+    } else {
+      setCanSignup(true);
+    }
     return data;
   };
 
@@ -57,6 +70,15 @@ export default function SignupPage() {
         setError("Matricula nao encontrada.");
         return;
       }
+    }
+
+    if (currentColaborador.allowSignup === false || canSignup === false) {
+      setCanSignup(false);
+      setError(
+        currentColaborador.allowReason ||
+          "Cadastro permitido apenas para gerente, coordenador ou supervisor."
+      );
+      return;
     }
 
     if (!lastName.trim()) {
@@ -148,7 +170,11 @@ export default function SignupPage() {
             <input
               type="text"
               value={matricula}
-              onChange={(event) => setMatricula(event.target.value)}
+              onChange={(event) => {
+                setMatricula(event.target.value);
+                setCanSignup(null);
+                if (error) setError("");
+              }}
               onBlur={() => fetchColaborador(matricula.trim())}
               className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm shadow-sm outline-none transition focus:border-[hsl(var(--brand))] focus:ring-2 focus:ring-[hsl(var(--brand))/0.2]"
               placeholder="Sua matricula"
@@ -203,8 +229,10 @@ export default function SignupPage() {
             <input
               type="text"
               value={lastName}
-              onChange={(event) => setLastName(event.target.value)}
-              className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm shadow-sm outline-none transition focus:border-[hsl(var(--brand))] focus:ring-2 focus:ring-[hsl(var(--brand))/0.2]"
+              onChange={(event) =>
+                setLastName(event.target.value.toUpperCase())
+              }
+              className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm uppercase shadow-sm outline-none transition focus:border-[hsl(var(--brand))] focus:ring-2 focus:ring-[hsl(var(--brand))/0.2]"
               placeholder="Ex: junior"
               required
             />
@@ -274,7 +302,7 @@ export default function SignupPage() {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || canSignup === false}
             className="w-full rounded-2xl bg-[hsl(var(--ink))] px-4 py-3 text-sm font-semibold text-white transition hover:translate-y-[-1px] hover:shadow-lg disabled:cursor-not-allowed disabled:bg-black/40"
           >
             {loading ? "Enviando..." : "Cadastrar"}
