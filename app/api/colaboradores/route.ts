@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 
+const getMaskedName = (name?: string | null) => {
+  const first = name?.trim().split(/\s+/)[0];
+  if (!first) return "****";
+  return `${first} ****`;
+};
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const matricula = searchParams.get("matricula")?.trim();
@@ -27,5 +33,9 @@ export async function GET(request: Request) {
     );
   }
 
-  return NextResponse.json(data);
+  return NextResponse.json({
+    nome: getMaskedName(data.nome),
+    filial: data.filial ?? "",
+    funcao: data.funcao ?? "",
+  });
 }

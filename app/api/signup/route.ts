@@ -14,12 +14,33 @@ const ADMIN_MATRICULAS = new Set([
 ]);
 
 const ALLOWED_FUNCAO_TERMS = ["GERENTE", "COORDENADOR", "SUPERVISOR"];
+const IGNORED_PARTICLES = new Set(["DE", "DA", "DO", "DAS", "DOS", "E"]);
 
 type SignupPayload = {
   matricula?: string;
   email?: string;
   password?: string;
+  lastName?: string;
   captchaToken?: string;
+};
+
+const normalizeName = (value: string) =>
+  value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9 ]/g, " ")
+    .toUpperCase()
+    .replace(/\s+/g, " ")
+    .trim();
+
+const getLastMeaningfulName = (name: string) => {
+  const parts = normalizeName(name).split(" ").filter(Boolean);
+  for (let i = parts.length - 1; i >= 0; i -= 1) {
+    if (!IGNORED_PARTICLES.has(parts[i])) {
+      return parts[i];
+    }
+  }
+  return "";
 };
 
 export async function POST(request: Request) {
@@ -33,9 +54,10 @@ export async function POST(request: Request) {
   const matricula = payload.matricula?.trim();
   const email = payload.email?.trim().toLowerCase();
   const password = payload.password;
+  const lastName = payload.lastName?.trim();
   const captchaToken = payload.captchaToken?.trim();
 
-  if (!matricula || !email || !password || !captchaToken) {
+  if (!matricula || !email || !password || !lastName || !captchaToken) {
     return NextResponse.json(
       { error: "Missing required fields." },
       { status: 400 }
@@ -54,6 +76,18 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: "Matricula not found in colaboradores." },
       { status: 400 }
+    );
+  }
+
+  const expectedLastName = getLastMeaningfulName(colaborador.nome ?? "");
+  if (!expectedLastName) {
+    return NextResponse.json({ error: "Nome invalido." }, { status: 400 });
+  }
+
+  if (normalizeName(lastName) !== expectedLastName) {
+    return NextResponse.json(
+      { error: "Ultimo sobrenome nao confere." },
+      { status: 422 }
     );
   }
 
@@ -131,7 +165,7 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json({
-    message: "Signup created. Check your email to confirm.",
+    message: "Signup created.",
     userId: data.user?.id ?? null,
   });
 }

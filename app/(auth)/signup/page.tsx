@@ -17,6 +17,7 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [lastName, setLastName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -58,6 +59,11 @@ export default function SignupPage() {
       }
     }
 
+    if (!lastName.trim()) {
+      setError("Informe o ultimo sobrenome sem acento.");
+      return;
+    }
+
     if (password !== confirmPassword) {
       setError("As senhas nao conferem.");
       return;
@@ -78,6 +84,7 @@ export default function SignupPage() {
           matricula: matricula.trim(),
           email,
           password,
+          lastName: lastName.trim(),
           captchaToken,
         }),
       });
@@ -108,6 +115,7 @@ export default function SignupPage() {
       setEmail("");
       setPassword("");
       setConfirmPassword("");
+      setLastName("");
       setCaptchaToken("");
       if (typeof resetCaptcha === "function") resetCaptcha();
     } catch (err) {
@@ -128,7 +136,7 @@ export default function SignupPage() {
             Criar acesso
           </h2>
           <p className="text-sm text-muted">
-            Use a matricula oficial. O email precisa ser confirmado.
+            Use a matricula oficial. Sem confirmacao de email.
           </p>
         </div>
 
@@ -151,14 +159,14 @@ export default function SignupPage() {
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <label className="text-xs uppercase tracking-[0.2em] text-muted">
-                Nome
+                Nome (mascarado)
               </label>
               <input
                 type="text"
                 value={colaborador?.nome ?? ""}
                 readOnly
                 className="w-full rounded-2xl border border-black/10 bg-white/70 px-4 py-3 text-sm text-ink/80"
-                placeholder="Nome completo"
+                placeholder="Nome mascarado"
               />
             </div>
             <div className="space-y-2">
@@ -186,6 +194,21 @@ export default function SignupPage() {
               className="w-full rounded-2xl border border-black/10 bg-white/70 px-4 py-3 text-sm text-ink/80"
               placeholder="Funcao"
             />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-xs uppercase tracking-[0.2em] text-muted">
+              Ultimo sobrenome (sem acento)
+            </label>
+            <input
+              type="text"
+              value={lastName}
+              onChange={(event) => setLastName(event.target.value)}
+              className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm shadow-sm outline-none transition focus:border-[hsl(var(--brand))] focus:ring-2 focus:ring-[hsl(var(--brand))/0.2]"
+              placeholder="Ex: junior"
+              required
+            />
+            <p className="text-xs text-muted">Ignore de/da/do/dos/das/e.</p>
           </div>
 
           <div className="space-y-2">
@@ -245,7 +268,7 @@ export default function SignupPage() {
 
           {success && (
             <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-              Cadastro criado. Confirme o email para entrar.
+              Cadastro criado. Voce ja pode entrar.
             </div>
           )}
 

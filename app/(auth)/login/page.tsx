@@ -56,7 +56,7 @@ export default function LoginPage() {
             Entrar
           </h2>
           <p className="text-sm text-muted">
-            Acesse com o email confirmado e sua senha.
+            Acesse com seu email e senha.
           </p>
         </div>
 
